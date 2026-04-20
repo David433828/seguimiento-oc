@@ -76,10 +76,31 @@ body{font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);background:va
 .pill{padding:6px 14px;border-radius:20px;font-size:13px;border:0.5px solid var(--border);cursor:pointer;background:transparent;color:var(--text2);font-family:inherit;white-space:nowrap}
 .pill.active{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
 .search{flex:1;min-width:180px;padding:8px 12px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:14px;outline:none;font-family:inherit}
-.tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;padding:10px 14px;border-bottom:0.5px solid var(--border);color:var(--text2);font-weight:500;font-size:12px;background:var(--bg2);white-space:nowrap}
-td{padding:10px 14px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+
+table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.col-desc{white-space:normal;word-break:break-word;line-height:1.3}
+.col-filter{width:100%;padding:3px 5px;border:0.5px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:11px;font-family:inherit;outline:none;box-sizing:border-box}
+.col-filter:focus{border-color:var(--border2)}
+#filterRow th{background:var(--bg2);padding:3px 6px}
+/* Encabezados fijos */
+.tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 320px)}
+.tbl-wrap thead th{position:sticky;top:0;z-index:2;background:var(--bg2);vertical-align:top}
+
+/* Anchos fijos por columna */
+table colgroup col:nth-child(1){width:90px}   /* fecha creacion */
+table colgroup col:nth-child(2){width:160px}  /* proveedor */
+table colgroup col:nth-child(3){width:80px}   /* n doc */
+table colgroup col:nth-child(4){width:80px}   /* n articulo */
+table colgroup col:nth-child(5){width:180px}  /* descripcion */
+table colgroup col:nth-child(6){width:75px}   /* cantidad */
+table colgroup col:nth-child(7){width:75px}   /* cant abierta */
+table colgroup col:nth-child(8){width:65px}   /* % pendiente */
+table colgroup col:nth-child(9){width:110px}  /* fecha entrega */
+table colgroup col:nth-child(10){width:85px}  /* status */
+table colgroup col:nth-child(11){width:55px}  /* dias */
+table colgroup col:nth-child(12){width:40px}  /* accion */
+th{text-align:left;padding:8px 8px;border-bottom:0.5px solid var(--border);color:var(--text2);font-weight:500;font-size:11px;background:var(--bg2);white-space:nowrap}
+td{padding:6px 8px;border-bottom:0.5px solid var(--border);vertical-align:top}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg2)}
 .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
@@ -140,19 +161,28 @@ document.addEventListener('DOMContentLoaded', function(){
       </div>
       <div id="adminFields" style="display:none">
         <div class="field">
-          <label>Contraseña de administrador</label>
+          <label>Correo electrónico</label>
+          <input type="email" id="adminEmail" placeholder="correo@empresa.com" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
           <input type="password" id="adminPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
         </div>
+
       </div>
       <div id="provFields">
         <div class="field">
           <label>Correo electrónico registrado</label>
           <input type="email" id="provEmail" placeholder="correo@empresa.com" onkeydown="if(event.key==='Enter')doLogin()">
         </div>
-        <p style="font-size:11px;color:var(--text3);margin-top:-8px">Ingresa el correo con el que tu empresa está registrada en nuestro sistema.</p>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="provPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
       </div>
       <p class="err" id="loginErr"></p>
       <button class="btn-login" onclick="doLogin()">Ingresar →</button>
+      
     </div>
   </div>
 </div>
@@ -177,19 +207,23 @@ document.addEventListener('DOMContentLoaded', function(){
   <div class="wrap">
     <div class="top-bar">
       <span class="top-title">Panel de Órdenes de Compra</span>
+      <span style="font-size:13px;color:var(--text2)" id="adminUserName"></span>
+      <span id="syncIndicatorAdmin" style="font-size:11px;color:var(--success-text);opacity:0;transition:opacity .5s">● sincronizado</span>
       <button class="btn" onclick="document.getElementById('xlsInput').click()">📂 Cargar Excel / CSV</button>
       <input type="file" id="xlsInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this)">
       <button class="btn" onclick="exportCSV()">⬇ Exportar</button>
       <button class="btn primary" id="btnGuardar" onclick="guardarEnSheets()">☁ Guardar en Sheets</button>
       <button class="btn" id="btnCargar" onclick="cargarDesdeSheets()">☁ Cargar desde Sheets</button>
       <button class="btn warn" onclick="openBulk()">✉ Alertas (<span id="alertCount">0</span>)</button>
+      <button class="btn" onclick="cargarDesdeSheets()">🔄 Actualizar</button>
+      <button class="btn" id="btnEliminar" onclick="eliminarSeleccionadas()" style="display:none;background:var(--danger-bg);color:var(--danger-text);border-color:var(--danger-border)">🗑 Eliminar (<span id="elimCount">0</span>)</button>
       <button class="btn" onclick="goLogin()">← Salir</button>
     </div>
     <div class="cards">
       <div class="kcard"><div class="lbl">Total líneas</div><div class="val" id="kT">0</div></div>
       <div class="kcard red"><div class="lbl">Atrasadas</div><div class="val" id="kA">0</div></div>
       <div class="kcard amb"><div class="lbl">Próximas 5d</div><div class="val" id="kP">0</div></div>
-
+      <div class="kcard"><div class="lbl">Total proveedores</div><div class="val" id="kProv">0</div></div>
     </div>
     <div class="panel">
       <div class="tab-bar">
@@ -197,51 +231,118 @@ document.addEventListener('DOMContentLoaded', function(){
         <button class="tab" onclick="aTab('provs',this)">Proveedores</button>
         <button class="tab" onclick="aTab('hist',this)">Correos enviados</button>
         <button class="tab" onclick="aTab('resp',this)">Respuestas proveedores</button>
-        <button class="tab" onclick="aTab('fmt',this)">Formato Excel</button>
+        <button class="tab" onclick="aTab('propuestas',this)">📅 Fechas propuestas (<span id="propCount">0</span>)</button>
+        <button class="tab" onclick="aTab('usuarios',this)">👤 Usuarios admin</button>
+        <button class="tab" onclick="aTab('passProvs',this)">🔐 Contraseñas proveedores</button>
       </div>
 
       <!-- ÓRDENES -->
       <div id="sec-ocs" class="sec active">
         <div class="filters">
-          <input class="search" id="qBox" type="text" placeholder="Buscar N° doc, proveedor, artículo..." oninput="renderOCs()">
           <button class="pill active" onclick="setF('todos',this)">Todos</button>
           <button class="pill" onclick="setF('atrasada',this)">Atrasadas</button>
           <button class="pill" onclick="setF('proxima',this)">Próximas</button>
           <button class="pill" onclick="setF('pendiente',this)">Pendientes</button>
-          <button class="pill" onclick="setF('recibida',this)">Recibidas</button>
+          <button class="btn sm" onclick="limpiarFiltros()" style="margin-left:auto">✕ Limpiar filtros</button>
         </div>
         <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Fecha creación</th>
-            <th>Cód. proveedor</th>
-            <th>Proveedor</th>
-            <th>N° Documento</th>
-            <th>N° Artículo</th>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Cant. abierta</th>
-            <th>Fecha entrega</th>
-            <th>Status línea</th>
-            <th>Días</th>
-            <th>Acción</th>
-          </tr></thead>
+          <table>
+          <colgroup>
+            <col style="width:36px">   <!-- checkbox -->
+            <col style="width:105px">  <!-- fecha creacion: "16 de abr de 2026" -->
+            <col style="width:150px">  <!-- proveedor: 4 lineas -->
+            <col style="width:62px">   <!-- n doc: 5 digitos -->
+            <col style="width:90px">   <!-- n articulo: 10 digitos -->
+            <col style="width:170px">  <!-- descripcion: 4 lineas -->
+            <col style="width:62px">   <!-- cantidad: 6 digitos -->
+            <col style="width:62px">   <!-- cant abierta: 6 digitos -->
+            <col style="width:62px">   <!-- % pendiente: 6 digitos -->
+            <col style="width:105px">  <!-- fecha entrega: "16 de abr de 2026" -->
+            <col style="width:105px">  <!-- status linea: 15 digitos -->
+            <col style="width:44px">   <!-- dias: 4 digitos -->
+            <col style="width:40px">   <!-- accion: icono correo -->
+          </colgroup>
+          <thead>
+          <tr id="filterRow">
+            <th style="padding:6px 8px;width:36px;text-align:center;background:var(--bg2)">
+              <input type="checkbox" id="checkAll" onchange="toggleAll(this)" title="Seleccionar todo">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Fecha creación</div>
+              <input class="col-filter" id="cf_fecha_creacion" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Proveedor</div>
+              <input class="col-filter" id="cf_nombre_proveedor" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">N° Documento</div>
+              <input class="col-filter" id="cf_numero_documento" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">N° Artículo</div>
+              <input class="col-filter" id="cf_numero_articulo" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Descripción</div>
+              <input class="col-filter" id="cf_descripcion" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px;text-align:right">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Cantidad</div>
+            </th>
+            <th style="padding:6px 8px;text-align:right">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Cant. abierta</div>
+            </th>
+            <th style="padding:6px 8px;text-align:center">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">% Pendiente</div>
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Fecha entrega</div>
+              <input class="col-filter" id="cf_fecha_entrega" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Status línea</div>
+              <input class="col-filter" id="cf_status_linea" placeholder="🔍" oninput="renderOCs()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Días</div>
+              <input class="col-filter" id="cf_dias" placeholder="🔍" oninput="renderOCs()" style="width:52px">
+            </th>
+            <th style="padding:6px 8px;text-align:center">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Acción</div>
+            </th>
+          </tr>
+          </thead>
           <tbody id="ocBody"></tbody></table>
         </div>
         <div id="ocEmpty" class="empty">
-          Carga tu archivo Excel o CSV para comenzar.<br><br>
-          <button class="btn" style="margin-top:8px" onclick="loadSample()">Cargar datos de ejemplo</button>
+Carga tu archivo Excel o CSV para comenzar.
         </div>
       </div>
 
       <!-- PROVEEDORES -->
       <div id="sec-provs" class="sec">
         <div class="filters">
-          <input class="search" id="qProv" type="text" placeholder="Buscar proveedor, código o correo..." oninput="renderProvs()">
+          <input class="search" id="qProv" type="text" placeholder="🔍 Buscar proveedor o correo..." oninput="renderProvs()" style="max-width:400px">
         </div>
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Cód. proveedor</th><th>Nombre</th><th>Correo</th><th>Líneas activas</th><th>Atrasadas</th><th>Acción</th>
-          </tr></thead>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 320px)">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+          <colgroup>
+            <col style="width:260px"> <!-- nombre -->
+            <col style="width:220px"> <!-- correo -->
+            <col style="width:100px"> <!-- lineas activas -->
+            <col style="width:130px"> <!-- atrasadas/proximas -->
+            <col style="width:120px"> <!-- accion -->
+          </colgroup>
+          <thead style="position:sticky;top:0;z-index:2">
+            <tr>
+              <th style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2)">Proveedor</th>
+              <th style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2)">Correo(s)</th>
+              <th style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);text-align:center">Líneas activas</th>
+              <th style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);text-align:center">Alertas</th>
+              <th style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);text-align:center">Acción</th>
+            </tr>
+          </thead>
           <tbody id="provBody"></tbody></table>
         </div>
         <div id="provEmpty" class="empty">Sin datos cargados.</div>
@@ -261,22 +362,114 @@ document.addEventListener('DOMContentLoaded', function(){
         <div id="respBody"><div class="empty">Aún no hay respuestas de proveedores en esta sesión.</div></div>
       </div>
 
-      <!-- FORMATO -->
-      <div id="sec-fmt" class="sec">
-        <div class="upload-zone" onclick="document.getElementById('xlsInput').click()">
-          <div style="font-size:30px;margin-bottom:8px">📊</div>
-          <strong style="font-size:14px">Haz clic para cargar tu archivo Excel (.xlsx) o CSV</strong>
-          <p style="font-size:13px;color:var(--text2);margin-top:8px">Columnas que debe tener tu archivo (nombres exactos o similares):</p>
-          <div class="code" style="text-align:left;margin-top:8px">
-            Fecha de creación &nbsp;·&nbsp; Código de cliente/proveedor &nbsp;·&nbsp; Nombre de cliente/proveedor<br>
-            Número de documento &nbsp;·&nbsp; Número de artículo &nbsp;·&nbsp; Descripción artículo/serv.<br>
-            Cantidad &nbsp;·&nbsp; Cantidad abierta restante &nbsp;·&nbsp; Fecha de entrega de la línea<br>
-            Número de línea &nbsp;·&nbsp; Precio unitario &nbsp;·&nbsp; Status de la línea<br>
-            Código de almacén &nbsp;·&nbsp; Fecha de vencimiento &nbsp;·&nbsp; Correo
-          </div>
-          <p style="font-size:12px;color:var(--text3);margin-top:12px">Una fila por línea de artículo. El proveedor ingresa con su correo electrónico.</p>
+      <!-- FECHAS PROPUESTAS -->
+      <div id="sec-propuestas" class="sec">
+        <div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;flex-wrap:wrap">
+          <span style="font-size:13px;color:var(--text2);flex:1">Órdenes donde el proveedor propuso una nueva fecha de entrega.</span>
+          <button class="btn sm" onclick="exportPropuestas()">⬇ Exportar</button>
         </div>
-        <div style="margin-top:1rem"><button class="btn" onclick="loadSample()">Cargar datos de ejemplo</button></div>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 320px)">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+          <colgroup>
+            <col style="width:160px"> <!-- proveedor -->
+            <col style="width:80px">  <!-- n doc -->
+            <col style="width:80px">  <!-- n art -->
+            <col style="width:180px"> <!-- descripcion -->
+            <col style="width:110px"> <!-- fecha entrega original -->
+            <col style="width:110px"> <!-- fecha propuesta -->
+            <col style="width:110px"> <!-- estado -->
+            <col style="width:170px"> <!-- accion -->
+          </colgroup>
+          <thead style="position:sticky;top:0;z-index:2;background:var(--bg2)">
+            <tr>
+              <th style="padding:8px 10px;font-size:11px">Proveedor</th>
+              <th style="padding:8px 10px;font-size:11px">N° Documento</th>
+              <th style="padding:8px 10px;font-size:11px">N° Artículo</th>
+              <th style="padding:8px 10px;font-size:11px">Descripción</th>
+              <th style="padding:8px 10px;font-size:11px">Fecha entrega original</th>
+              <th style="padding:8px 10px;font-size:11px;color:var(--info-text)">Fecha propuesta</th>
+              <th style="padding:8px 10px;font-size:11px">Estado</th>
+              <th style="padding:8px 10px;font-size:11px;text-align:center">Acción</th>
+              <th style="padding:8px 10px;font-size:11px;color:var(--warn-text)">Comentario para proveedor</th>
+            </tr>
+          </thead>
+          <tbody id="propuestasBody"></tbody>
+          </table>
+        </div>
+        <div id="propuestasEmpty" class="empty">No hay fechas propuestas por proveedores.</div>
+      </div>
+
+      <!-- USUARIOS ADMIN -->
+      <div id="sec-usuarios" class="sec">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px">
+
+          <!-- Lista de usuarios -->
+          <div>
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:1rem">Usuarios registrados</h3>
+            <div id="usuariosList"></div>
+          </div>
+
+          <!-- Columna derecha: crear + cambiar contraseña -->
+          <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+            <!-- Cambiar mi contraseña (solo usuario principal) -->
+            <div id="cambiarPassPanel" style="background:var(--bg2);border-radius:var(--r);padding:1.25rem;display:none">
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:1rem">🔒 Cambiar mi contraseña</h3>
+              <div class="mf"><label>Contraseña actual</label><input id="cp_actual" type="password" placeholder="••••••••"></div>
+              <div class="mf"><label>Nueva contraseña</label><input id="cp_nueva" type="password" placeholder="Mínimo 6 caracteres"></div>
+              <div class="mf"><label>Confirmar nueva contraseña</label><input id="cp_confirmar" type="password" placeholder="Repite la nueva contraseña"></div>
+              <p id="cp_err" style="font-size:12px;color:var(--danger-text);display:none;margin-bottom:8px"></p>
+              <p id="cp_ok" style="font-size:12px;color:var(--success-text);display:none;margin-bottom:8px">✅ Contraseña cambiada exitosamente.</p>
+              <button class="btn primary" onclick="cambiarContrasena()" style="width:100%;justify-content:center">Cambiar contraseña</button>
+            </div>
+
+            <!-- Crear nuevo usuario -->
+            <div style="background:var(--bg2);border-radius:var(--r);padding:1.25rem">
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:1rem">Crear nuevo usuario</h3>
+              <div class="mf"><label>Nombre</label><input id="nu_nombre" placeholder="Nombre completo"></div>
+              <div class="mf"><label>Correo electrónico</label><input id="nu_email" type="email" placeholder="correo@empresa.com"></div>
+              <div class="mf"><label>Contraseña</label>
+                <div style="display:flex;gap:6px">
+                  <input id="nu_pass" type="password" placeholder="Mínimo 6 caracteres" style="flex:1">
+                  <button onclick="generarPass()" class="btn sm" title="Generar contraseña">🔀</button>
+                </div>
+              </div>
+              <p id="nu_err" style="font-size:12px;color:var(--danger-text);display:none;margin-bottom:8px"></p>
+              <button class="btn primary" onclick="crearUsuario()" style="width:100%;justify-content:center">+ Crear usuario</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTRASEÑAS PROVEEDORES -->
+      <div id="sec-passProvs" class="sec">
+        <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+          <span style="font-size:13px;color:var(--text2);flex:1">Gestiona las contraseñas de acceso de los proveedores. Genera y envía credenciales por correo.</span>
+          <button class="btn primary" onclick="generarTodasLasPass()">🔀 Generar todas las contraseñas</button>
+          <button class="btn" onclick="cargarPassProveedores()">☁ Cargar desde Sheets</button>
+        </div>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 320px)">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+          <colgroup>
+            <col style="width:200px">
+            <col style="width:220px">
+            <col style="width:130px">
+            <col style="width:160px">
+          </colgroup>
+          <thead style="position:sticky;top:0;z-index:2;background:var(--bg2)">
+            <tr>
+              <th style="padding:8px 12px;font-size:11px">Proveedor</th>
+              <th style="padding:8px 12px;font-size:11px">Correo(s)</th>
+              <th style="padding:8px 12px;font-size:11px">Contraseña</th>
+              <th style="padding:8px 12px;font-size:11px;text-align:center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="passProvsBody"></tbody>
+          </table>
+        </div>
+        <div id="passProvsEmpty" class="empty">Carga los datos primero.</div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -290,8 +483,13 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="prov-info">
         <h3 id="provNameLbl"></h3>
         <p id="provEmailLbl"></p>
+        <p id="syncIndicatorProv" style="font-size:10px;color:var(--success-text);opacity:0;transition:opacity .5s;margin-top:2px">● actualizado</p>
       </div>
-      <button class="btn" style="margin-left:auto" onclick="goLogin()">← Salir</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn" onclick="actualizarProveedor()">🔄 Actualizar</button>
+        <button class="btn primary" onclick="guardarProveedor()">💾 Guardar</button>
+        <button class="btn" onclick="goLogin()">← Salir</button>
+      </div>
     </div>
     <div class="cards">
       <div class="kcard"><div class="lbl">Total líneas</div><div class="val" id="pT">0</div></div>
@@ -302,29 +500,108 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="panel">
       <div class="tab-bar">
         <button class="tab active" onclick="pTab('activas',this)">Órdenes activas</button>
-        <button class="tab" onclick="pTab('todas',this)">Todas mis órdenes</button>
+        <button class="tab" onclick="pTab('misresp',this)">📋 Mis propuestas</button>
       </div>
       <div id="psec-activas" class="sec active">
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>N° Documento</th><th>N° Artículo</th><th>Descripción</th>
-            <th>Cantidad</th><th>Cant. abierta</th><th>Fecha entrega</th>
-            <th>Status</th><th>Días</th><th>Confirmación</th><th>Comentario</th>
-          </tr></thead>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 380px)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
+          <colgroup>
+            <col style="width:75px">   <!-- Fecha creación -->
+            <col style="width:68px">   <!-- N° Doc -->
+            <col style="width:82px">   <!-- N° Art -->
+            <col style="width:175px">  <!-- Descripción -->
+            <col style="width:52px">   <!-- Cantidad -->
+            <col style="width:52px">   <!-- Cant abierta -->
+            <col style="width:90px">   <!-- Fecha entrega -->
+            <col style="width:65px">   <!-- Status -->
+            <col style="width:32px">   <!-- Días -->
+            <col style="width:110px">  <!-- Fecha propuesta -->
+            <col style="width:120px">  <!-- Confirmación -->
+            <col style="width:220px">  <!-- Comentario -->
+          </colgroup>
+          <thead style="position:sticky;top:0;z-index:2;background:var(--bg2)">
+          <tr>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Fecha creación</div>
+              <input class="col-filter" id="pf_fecha_creacion" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">N° Documento</div>
+              <input class="col-filter" id="pf_numero_documento" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">N° Artículo</div>
+              <input class="col-filter" id="pf_numero_articulo" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Descripción</div>
+              <input class="col-filter" id="pf_descripcion" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px;text-align:right">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Cantidad</div>
+            </th>
+            <th style="padding:6px 8px;text-align:right">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Cant. abierta</div>
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Fecha entrega</div>
+              <input class="col-filter" id="pf_fecha_entrega" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500;margin-bottom:3px">Status</div>
+              <input class="col-filter" id="pf_status" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Días</div>
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--info-text);font-weight:500;margin-bottom:3px">Proponer fecha</div>
+              <input class="col-filter" id="pf_fecha_propuesta" placeholder="🔍" oninput="renderProv()">
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Confirmación</div>
+            </th>
+            <th style="padding:6px 8px">
+              <div style="font-size:10px;color:var(--text2);font-weight:500">Comentario</div>
+            </th>
+          </tr>
+          </thead>
           <tbody id="pActivasBody"></tbody></table>
         </div>
         <div id="pActivasEmpty" class="empty" style="display:none">No tienes órdenes activas en este momento. 🎉</div>
       </div>
-      <div id="psec-todas" class="sec">
-        <div class="tbl-wrap">
-          <table><thead><tr>
-            <th>Fecha creación</th><th>N° Documento</th><th>N° Artículo</th><th>Descripción</th>
-            <th>Cantidad</th><th>Cant. abierta</th><th>Fecha entrega</th>
-            <th>Status</th><th>Días</th><th>Confirmación</th><th>Comentario</th><th>Confirmación</th><th>Comentario</th>
-          </tr></thead>
-          <tbody id="pTodasBody"></tbody></table>
+
+      <!-- MIS PROPUESTAS -->
+      <div id="psec-misresp" class="sec">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Historial de fechas que has propuesto y su estado de revisión.</p>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 400px)">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+          <colgroup>
+            <col style="width:75px">
+            <col style="width:85px">
+            <col style="width:180px">
+            <col style="width:105px">
+            <col style="width:105px">
+            <col style="width:120px">
+            <col>
+          </colgroup>
+          <thead style="position:sticky;top:0;z-index:2;background:var(--bg2)">
+            <tr>
+              <th style="padding:8px 10px;font-size:11px">N° Doc.</th>
+              <th style="padding:8px 10px;font-size:11px">N° Artículo</th>
+              <th style="padding:8px 10px;font-size:11px">Descripción</th>
+              <th style="padding:8px 10px;font-size:11px">Fecha entrega original</th>
+              <th style="padding:8px 10px;font-size:11px;color:var(--info-text)">Fecha propuesta</th>
+              <th style="padding:8px 10px;font-size:11px;text-align:center">Estado Compras</th>
+              <th style="padding:8px 10px;font-size:11px;color:var(--warn-text)">Comentario de Compras</th>
+            </tr>
+          </thead>
+          <tbody id="pMisRespBody"></tbody>
+          </table>
         </div>
-        <div id="pTodasEmpty" class="empty" style="display:none">Sin órdenes registradas.</div>
+        <div id="pMisRespEmpty" class="empty" style="display:none">Aún no has propuesto fechas.</div>
+      </div>
+      </div>
       </div>
     </div>
   </div>
@@ -373,7 +650,41 @@ Cordialmente,
 <div id="toast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:var(--r);font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2)"></div>
 
 <script>
-const PASS = 'Dj914533';
+// ── Sistema de usuarios admin ──
+// Formato: {email, pass, nombre}
+let ADMIN_USERS = [
+  {email: 'david.jimenez@tecnoalsa.com', pass: 'admin123', nombre: 'David Jiménez'}
+];
+function loadAdminUsers(){
+  try{ const s=localStorage.getItem('admin_users'); if(s) ADMIN_USERS=JSON.parse(s); }catch(e){}
+}
+function saveAdminUsers(){
+  try{ localStorage.setItem('admin_users', JSON.stringify(ADMIN_USERS)); }catch(e){}
+  // También guardar en Sheets
+  syncUsuariosToSheets();
+}
+async function syncUsuariosToSheets(){
+  try{
+    const form = new FormData();
+    form.append('data', JSON.stringify({action:'saveUsuarios', usuarios: ADMIN_USERS}));
+    await fetch(SHEETS_URL, {method:'POST', body: form});
+  }catch(e){}
+}
+async function loadUsuariosFromSheets(){
+  try{
+    const resp = await fetchSheets({action:'getUsuarios'});
+    if(resp.usuarios && resp.usuarios.length){
+      ADMIN_USERS = resp.usuarios;
+      saveLocalUsers();
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function saveLocalUsers(){
+  try{ localStorage.setItem('admin_users', JSON.stringify(ADMIN_USERS)); }catch(e){}
+}
+loadAdminUsers();
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxGeAdbjeCvP3PlSqLAbwRvHpeFLXuvS5dY7_6h8kq3L13EMH9hIg-Ftghu5XwXGoc4/exec';
 let rows = [], filt = 'todos', emailLog = [], curMode = 'proveedor';
 const $ = id => document.getElementById(id);
@@ -412,12 +723,71 @@ function fmt(s){
   if(!d) return String(s);
   return d.toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'});
 }
+function toISO(s){
+  if(!s) return '';
+  const d = pd(s);
+  if(!d) return '';
+  return d.toISOString().split('T')[0];
+}
+function editarFecha(idx){
+  $('fecha-txt-'+idx).style.display = 'none';
+  $('fecha-inp-'+idx).style.display = 'inline-block';
+  $('fecha-inp-'+idx).focus();
+}
+function cancelarFecha(idx){
+  setTimeout(() => {
+    $('fecha-txt-'+idx).style.display = 'inline';
+    $('fecha-inp-'+idx).style.display = 'none';
+  }, 200);
+}
+async function guardarFecha(idx, valor){
+  if(!valor) return;
+  // Convertir yyyy-mm-dd a dd/mm/yyyy
+  const [y,m,d] = valor.split('-');
+  const fechaFmt = `${d}/${m}/${y}`;
+  rows[idx].fecha_entrega = fechaFmt;
+  $('fecha-txt-'+idx).textContent = fmt(fechaFmt);
+  $('fecha-txt-'+idx).style.display = 'inline';
+  $('fecha-inp-'+idx).style.display = 'none';
+  renderKPIs();
+  // Guardar en Sheets
+  toast('💾 Guardando fecha...');
+  try {
+    await guardarEnSheets();
+    toast('✅ Fecha actualizada en Sheets');
+  } catch(e) {
+    toast('⚠️ Fecha guardada localmente');
+  }
+}
+function calcPct(cantidad_abierta, cantidad){
+  const ab  = parseFloat(String(cantidad_abierta||'0').replace(/[.,\s]/g,'').replace(',','.')) ||
+              parseFloat(String(cantidad_abierta||'0').replace(/\./g,'').replace(',','.')) || 0;
+  const tot = parseFloat(String(cantidad||'0').replace(/[.,\s]/g,'').replace(',','.')) ||
+              parseFloat(String(cantidad||'0').replace(/\./g,'').replace(',','.')) || 0;
+  if(!tot) return '—';
+  const pct = Math.round((ab / tot) * 100);
+  const color = pct >= 75 ? 'var(--danger-text)' : pct >= 40 ? 'var(--warn-text)' : 'var(--success-text)';
+  return `<span style="font-weight:600;color:${color}">${pct}%</span>`;
+}
 function fmtNum(n){
   if(n === '' || n === null || n === undefined) return '—';
-  // Devolver el valor tal cual viene del Excel (ya viene formateado como string)
-  const s = String(n).trim();
+  let s = String(n).trim();
   if(!s) return '—';
-  return s;
+  // Detectar formato europeo: 15.000,00 → convertir a número
+  if(/^[\d.]+,\d+$/.test(s)){
+    s = s.replace(/\./g,'').replace(',','.');
+  } else {
+    // Quitar puntos de miles si hay: 15.000 → 15000
+    s = s.replace(/\./g,'');
+  }
+  const num = parseFloat(s);
+  if(isNaN(num)) return String(n).trim();
+  // Mostrar con 2 decimales si tiene parte decimal, sin decimales si es entero
+  const hasDecimal = num % 1 !== 0;
+  return num.toLocaleString('es-CO', {
+    minimumFractionDigits: hasDecimal ? 2 : 0,
+    maximumFractionDigits: 2
+  });
 }
 function initials(s){ return (s||'?').trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?'; }
 function norm(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
@@ -486,19 +856,50 @@ function setMode(m){
 function doLogin(){
   $('loginErr').style.display = 'none';
   if(curMode === 'admin'){
-    if($('adminPass').value === PASS){ showAdmin(); }
-    else{ $('loginErr').textContent = 'Contraseña incorrecta.'; $('loginErr').style.display = 'block'; }
+    const aEmail = $('adminEmail').value.trim().toLowerCase();
+    const aPass  = $('adminPass').value;
+    if(!aEmail){ $('loginErr').textContent = 'Ingresa tu correo electrónico.'; $('loginErr').style.display='block'; return; }
+    const btnL = document.querySelector('.btn-login');
+    btnL.textContent = 'Verificando...'; btnL.disabled = true;
+    // Cargar usuarios desde Sheets antes de validar
+    loadUsuariosFromSheets().finally(() => {
+      btnL.textContent = 'Ingresar →'; btnL.disabled = false;
+      const user = ADMIN_USERS.find(u => u.email.toLowerCase() === aEmail && u.pass === aPass);
+      if(user){ showAdmin(user); }
+      else{ $('loginErr').textContent = 'Correo o contraseña incorrectos.'; $('loginErr').style.display = 'block'; }
+    });
     return;
   }
   const emailInput = $('provEmail').value.trim().toLowerCase();
+  const passInput  = $('provPass').value;
   if(!emailInput){ $('loginErr').textContent = 'Ingresa tu correo electrónico.'; $('loginErr').style.display = 'block'; return; }
-  // Mostrar spinner mientras carga
+  if(!passInput){  $('loginErr').textContent = 'Ingresa tu contraseña.'; $('loginErr').style.display = 'block'; return; }
   const btnLogin = document.querySelector('.btn-login');
-  btnLogin.textContent = 'Cargando datos...'; btnLogin.disabled = true;
+  btnLogin.textContent = 'Cargando...'; btnLogin.disabled = true;
   $('loginErr').style.display = 'none';
 
-  // Siempre cargar desde Sheets primero (funciona aunque rows esté vacío)
-  cargarRowsDesdeSheets().then(() => {
+  // Cargar contraseñas de proveedores desde Sheets y luego las órdenes
+  cargarRowsDesdeSheets().then(async () => {
+    // Validar contraseña del proveedor desde Sheets
+    let passOk = false;
+    try {
+      const respPass = await fetchSheets({action: 'getProveedores'});
+      if(respPass.rows && respPass.rows.length){
+        window._provPassDB = respPass.rows; // guardar para uso del admin
+        const provRow = respPass.rows.find(p => {
+          const correos = String(p.correos||'').toLowerCase().split(';').map(e=>e.trim()).filter(Boolean);
+          return correos.includes(emailInput);
+        });
+        if(provRow && provRow.contrasena === passInput) passOk = true;
+      }
+    } catch(e){ passOk = false; }
+
+    if(!passOk){
+      $('loginErr').textContent = 'Correo o contraseña incorrectos.';
+      $('loginErr').style.display = 'block';
+      btnLogin.textContent = 'Ingresar →'; btnLogin.disabled = false;
+      return;
+    }
     if(!rows.length){
       $('loginErr').textContent = 'No hay órdenes disponibles. Contacta al área de Compras.';
       $('loginErr').style.display = 'block';
@@ -516,7 +917,6 @@ function doLogin(){
       return;
     }
     btnLogin.textContent = 'Ingresar →'; btnLogin.disabled = false;
-    // Detectar cuántas empresas distintas tiene este correo
     const empresas = {};
     match.forEach(r => {
       const key = r.cod_proveedor || r.nombre_proveedor || 'sin_cod';
@@ -524,46 +924,73 @@ function doLogin(){
       empresas[key].rows.push(r);
     });
     const listaEmpresas = Object.values(empresas);
-    if(listaEmpresas.length === 1){
-      showProveedor(emailInput, match);
-    } else {
-      showSelectorEmpresa(emailInput, listaEmpresas);
-    }
+    if(listaEmpresas.length === 1){ showProveedor(emailInput, match); }
+    else { showSelectorEmpresa(emailInput, listaEmpresas); }
   }).catch(() => {
-    $('loginErr').textContent = 'Error al conectar con el servidor. Intenta de nuevo.';
+    $('loginErr').textContent = 'Error al conectar. Intenta de nuevo.';
     $('loginErr').style.display = 'block';
     btnLogin.textContent = 'Ingresar →'; btnLogin.disabled = false;
   });
 }
 function goLogin(){
+  detenerPolling();
   document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
   $('loginScreen').classList.add('active');
   $('loginScreen').style.display = 'flex';
-  $('adminPass').value = ''; $('provEmail').value = '';
+  $('adminEmail').value = ''; $('adminPass').value = ''; $('provEmail').value = ''; $('provPass').value = '';
 }
 
 // ADMIN
-function showAdmin(){
+function showAdmin(user){
   document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
   $('adminScreen').classList.add('active');
   $('adminScreen').style.display = 'block';
   window.scrollTo(0,0);
+  if(user && $('adminUserName')) $('adminUserName').textContent = user.nombre || user.email;
+  window._currentAdminEmail = user ? user.email.toLowerCase() : '';
   renderKPIs(); renderOCs();
   cargarDesdeSheets();
+  iniciarPolling('admin');
 }
 function renderKPIs(){
   $('kT').textContent = rows.length;
   $('kA').textContent = rows.filter(r => calcEstado(r) === 'atrasada').length;
   $('kP').textContent = rows.filter(r => calcEstado(r) === 'proxima').length;
-
+  $('kProv').textContent = new Set(
+    rows.map(r => (r.cod_proveedor || r.nombre_proveedor || '').trim().toLowerCase()).filter(Boolean)
+  ).size;
+  if($('propCount')) $('propCount').textContent = rows.filter(r => r.fecha_propuesta && !r.estado_propuesta).length;
   const provAlert = new Set(rows.filter(r => { const e=calcEstado(r); return (e==='atrasada'||e==='proxima') && r.correo; }).map(r=>r.cod_proveedor||r.correo));
   $('alertCount').textContent = provAlert.size;
 }
 function renderOCs(){
-  const q = ($('qBox').value || '').toLowerCase();
+  const cf = field => {
+    const el = document.getElementById('cf_' + field);
+    return el ? el.value.toLowerCase().trim() : '';
+  };
   const vis = rows.filter(r => {
     const e = calcEstado(r);
-    return (filt === 'todos' || e === filt) && (!q || Object.values(r).join(' ').toLowerCase().includes(q));
+    const matchEstado = filt === 'todos' || e === filt;
+    // Días restantes para filtro numérico
+    const _fd = pd(r.fecha_entrega);
+    let _diasNum = null;
+    if(_fd){ const h=new Date();h.setHours(0,0,0,0);const en=new Date(_fd);en.setHours(0,0,0,0);_diasNum=Math.round((en-h)/864e5); }
+    const _diasStr = _diasNum === null ? '' : String(_diasNum);
+    // Status: filtra por estado calculado (Atrasada, Próxima, Pendiente) O por status_linea real
+    const _sqry = cf('status_linea');
+    const _smatch = !_sqry
+      || bLbl(e).toLowerCase().includes(_sqry)
+      || (r.status_linea||'').toLowerCase().includes(_sqry);
+    return matchEstado
+      && (!cf('fecha_creacion')   || fmt(r.fecha_creacion).toLowerCase().includes(cf('fecha_creacion')))
+      && (!cf('cod_proveedor')    || (r.cod_proveedor||'').toLowerCase().includes(cf('cod_proveedor')))
+      && (!cf('nombre_proveedor') || (r.nombre_proveedor||'').toLowerCase().includes(cf('nombre_proveedor')))
+      && (!cf('numero_documento') || (r.numero_documento||'').toLowerCase().includes(cf('numero_documento')))
+      && (!cf('numero_articulo')  || (r.numero_articulo||'').toLowerCase().includes(cf('numero_articulo')))
+      && (!cf('descripcion')      || (r.descripcion||'').toLowerCase().includes(cf('descripcion')))
+      && (!cf('fecha_entrega')    || fmt(r.fecha_entrega).toLowerCase().includes(cf('fecha_entrega')))
+      && _smatch
+      && (!cf('dias')             || _diasStr.includes(cf('dias')));
   });
   $('ocEmpty').style.display = rows.length ? 'none' : 'block';
   if(!rows.length){ $('ocBody').innerHTML = ''; return; }
@@ -571,25 +998,79 @@ function renderOCs(){
     const idx = rows.indexOf(r);
     const e = calcEstado(r);
     return `<tr>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmt(r.fecha_creacion)}</td>
-      <td style="font-size:12px;color:var(--text2)">${r.cod_proveedor||'—'}</td>
-      <td style="white-space:nowrap"><strong>${r.nombre_proveedor||'—'}</strong></td>
-      <td><strong>${r.numero_documento||'—'}</strong></td>
-      <td style="font-size:12px">${r.numero_articulo||'—'}</td>
-      <td style="font-size:12px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.descripcion||''}">${r.descripcion||'—'}</td>
-      <td style="text-align:right">${fmtNum(r.cantidad)}</td>
-      <td style="text-align:right;font-weight:500">${fmtNum(r.cantidad_abierta)}</td>
-      <td style="white-space:nowrap">${fmt(r.fecha_entrega)}</td>
-      <td><span class="badge ${bCls(e)}">${r.status_linea||bLbl(e)}</span></td>
-      <td>${dHtml(r)}</td>
-      <td><button class="btn sm" onclick="openEmail(${idx})">✉</button></td>
+      <td style="padding:6px 8px;text-align:center;width:36px"><input type="checkbox" class="row-check" data-idx="${idx}"></td>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap;padding:6px 8px">${fmt(r.fecha_creacion)}</td>
+      <td style="padding:6px 8px"><div style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;line-height:1.4;font-size:12px;font-weight:600">${r.nombre_proveedor||'—'}</div></td>
+      <td style="padding:6px 8px;font-size:12px;text-align:center"><strong>${r.numero_documento||'—'}</strong></td>
+      <td style="font-size:11px;padding:6px 8px;word-break:break-all">${r.numero_articulo||'—'}</td>
+      <td style="padding:6px 8px"><div style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;font-size:11px;color:var(--text2);word-break:break-word" title="${r.descripcion||''}">${r.descripcion||'—'}</div></td>
+      <td style="text-align:right;padding:6px 8px;font-size:11px">${fmtNum(r.cantidad)}</td>
+      <td style="text-align:right;font-weight:600;padding:6px 8px;font-size:11px">${fmtNum(r.cantidad_abierta)}</td>
+      <td style="text-align:center;padding:6px 8px;font-size:11px">${calcPct(r.cantidad_abierta, r.cantidad)}</td>
+      <td style="white-space:nowrap">
+        <span id="fecha-txt-${idx}">${fmt(r.fecha_entrega)}</span>
+        <input type="date" id="fecha-inp-${idx}" value="${toISO(r.fecha_entrega)}"
+          style="display:none;padding:3px 6px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text)"
+          onchange="guardarFecha(${idx}, this.value)" onblur="cancelarFecha(${idx})">
+        <button onclick="editarFecha(${idx})" title="Editar fecha"
+          style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:12px;padding:2px 4px;margin-left:2px">✏️</button>
+      </td>
+      <td style="padding:6px 8px"><span class="badge ${bCls(e)}" style="font-size:10px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:inline-block">${r.status_linea||bLbl(e)}</span></td>
+
+      <td style="text-align:center;padding:6px 8px;font-size:11px">${dHtml(r)}</td>
+      <td style="text-align:center;padding:7px 4px"><button onclick="openEmail(${idx})" title="Enviar correo" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px">✉</button></td>
     </tr>`;
   }).join('');
+  document.querySelectorAll('.row-check').forEach(ch => ch.addEventListener('change', actualizarBtnEliminar));
+  actualizarBtnEliminar();
 }
 function setF(f, btn){
   filt = f;
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
+  renderOCs();
+}
+function toggleAll(cb){
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  actualizarBtnEliminar();
+}
+function actualizarBtnEliminar(){
+  const sel = document.querySelectorAll('.row-check:checked').length;
+  const btn = $('btnEliminar');
+  if(btn){ btn.style.display = sel > 0 ? 'inline-flex' : 'none'; }
+  const cnt = $('elimCount');
+  if(cnt) cnt.textContent = sel;
+}
+async function eliminarSeleccionadas(){
+  const checks = [...document.querySelectorAll('.row-check:checked')];
+  if(!checks.length) return;
+  if(!confirm(`¿Eliminar ${checks.length} línea(s)? También se eliminarán de Google Sheets.`)) return;
+  const idxs = checks.map(ch => parseInt(ch.dataset.idx)).sort((a,b) => b-a);
+  const eliminadas = idxs.map(i => rows[i]).filter(Boolean);
+  idxs.forEach(i => rows.splice(i, 1));
+  renderKPIs(); renderOCs();
+  toast(`🗑 ${eliminadas.length} línea(s) eliminada(s). Guardando...`);
+  await guardarEnSheets();
+  for(const r of eliminadas){
+    try{
+      const form = new FormData();
+      form.append('data', JSON.stringify({
+        action:'deleteRespuesta',
+        numero_documento: r.numero_documento,
+        numero_articulo:  r.numero_articulo,
+        numero_linea:     r.numero_linea || ''
+      }));
+      await fetch(SHEETS_URL, {method:'POST', body: form});
+    }catch(e){}
+  }
+  toast(`✅ ${eliminadas.length} línea(s) eliminada(s) de Sheets`);
+}
+function limpiarFiltros(){
+  document.querySelectorAll('.col-filter').forEach(i => i.value = '');
+  filt = 'todos';
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  const firstPill = document.querySelector('.pill');
+  if(firstPill) firstPill.classList.add('active');
   renderOCs();
 }
 function aTab(id, btn){
@@ -598,6 +1079,11 @@ function aTab(id, btn){
   $('sec-' + id).classList.add('active'); btn.classList.add('active');
   if(id === 'provs') renderProvs();
   if(id === 'resp') renderRespuestas();
+  if(id === 'propuestas') renderPropuestas();
+  if(id === 'usuarios'){
+    loadUsuariosFromSheets().then(() => renderUsuarios()).catch(() => renderUsuarios());
+  }
+  if(id === 'passProvs'){ cargarPassProveedores(); }
 }
 function renderProvs(){
   const q = ($('qProv').value || '').toLowerCase();
@@ -626,16 +1112,23 @@ function renderProvs(){
     )].join(', ');
     const primerCorreo = p.correo.split(';')[0].trim();
     return `<tr>
-      <td style="font-size:12px;color:var(--text2)">${p.cod}</td>
-      <td><strong>${p.nombre}</strong></td>
-      <td style="font-size:12px;color:var(--text2);max-width:200px;word-break:break-all">${correosUnicos}</td>
-      <td>${activas}</td>
-      <td>
-        ${atrasadas > 0 ? `<span class="badge b-at">${atrasadas}</span> ` : ''}
-        ${proximas  > 0 ? `<span class="badge b-pr">${proximas}</span>`   : ''}
-        ${atrasadas === 0 && proximas === 0 ? '0' : ''}
+      <td style="padding:10px 12px;font-size:13px;white-space:normal;word-break:break-word;line-height:1.3;border-bottom:0.5px solid var(--border)">
+        <strong>${p.nombre}</strong>
       </td>
-      <td><button class="btn sm primary" onclick="emailProvCorreo('${primerCorreo}','${p.cod}')">✉ Contactar</button></td>
+      <td style="padding:10px 12px;font-size:12px;color:var(--text2);white-space:normal;word-break:break-all;line-height:1.5;border-bottom:0.5px solid var(--border)">
+        ${correosUnicos.split(', ').map(e => `<div>${e}</div>`).join('')}
+      </td>
+      <td style="padding:10px 12px;text-align:center;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:14px;font-weight:600">${activas}</span>
+      </td>
+      <td style="padding:10px 12px;text-align:center;border-bottom:0.5px solid var(--border)">
+        ${atrasadas > 0 ? `<span class="badge b-at" style="margin:2px">${atrasadas} atras.</span>` : ''}
+        ${proximas  > 0 ? `<span class="badge b-pr" style="margin:2px">${proximas} próx.</span>`  : ''}
+        ${atrasadas === 0 && proximas === 0 ? '<span style="color:var(--text3);font-size:12px">Sin alertas</span>' : ''}
+      </td>
+      <td style="padding:10px 12px;text-align:center;border-bottom:0.5px solid var(--border)">
+        <button class="btn sm primary" onclick="emailProvCorreo('${primerCorreo}','${p.cod}')">✉ Contactar</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -650,6 +1143,8 @@ function showProveedor(email, data){
   $('provAvatar').textContent = initials(nombre);
   $('provNameLbl').textContent = nombre;
   $('provEmailLbl').textContent = email;
+  window._currentProvEmail = email.toLowerCase();
+  iniciarPolling('proveedor');
   $('pT').textContent = data.length;
   $('pA').textContent = data.filter(r => calcEstado(r) === 'atrasada').length;
   $('pP').textContent = data.filter(r => calcEstado(r) === 'proxima').length;
@@ -661,18 +1156,37 @@ function showProveedor(email, data){
     const conf = r.confirmacion || '';
     const com  = r.comentario  || '';
     const confCls = conf === 'Confirmado' ? 'color:var(--success-text)' : conf === 'Con novedad' ? 'color:var(--danger-text)' : conf === 'En proceso' ? 'color:var(--info-text)' : 'color:var(--text2)';
+    const fidx = ridx >= 0 ? ridx : 'p' + Math.random().toString(36).slice(2,7);
     return `<tr>
-      ${full ? `<td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmt(r.fecha_creacion)}</td>` : ''}
-      <td><strong>${r.numero_documento||'—'}</strong></td>
-      <td style="font-size:12px">${r.numero_articulo||'—'}</td>
-      <td style="font-size:13px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.descripcion||'—'}</td>
-      <td style="text-align:right">${fmtNum(r.cantidad)}</td>
-      <td style="text-align:right;font-weight:500">${fmtNum(r.cantidad_abierta)}</td>
-      <td style="white-space:nowrap">${fmt(r.fecha_entrega)}</td>
-      <td><span class="badge ${bCls(e)}">${r.status_linea||bLbl(e)}</span></td>
-      <td>${dHtml(r)}</td>
-      <td>
-        <select onchange="setConfirmacion(${ridx}, this.value)" style="font-size:12px;padding:3px 6px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);${confCls};font-family:inherit;cursor:pointer">
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap;padding:6px 8px">${fmt(r.fecha_creacion)}</td>
+      <td style="padding:6px 8px"><strong style="font-size:12px">${r.numero_documento||'—'}</strong></td>
+      <td style="font-size:12px;padding:6px 8px">
+        <div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all">${r.numero_articulo||'—'}</div>
+      </td>
+      <td style="font-size:12px;color:var(--text2);padding:6px 8px">
+        <div style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;word-break:break-word" title="${r.descripcion||''}">${r.descripcion||'—'}</div>
+      </td>
+      <td style="text-align:right;padding:6px 8px">${fmtNum(r.cantidad)}</td>
+      <td style="text-align:right;font-weight:500;padding:6px 8px">${fmtNum(r.cantidad_abierta)}</td>
+      <td style="white-space:nowrap;padding:6px 8px">
+        <span id="fecha-txt-${fidx}">${fmt(r.fecha_entrega)}</span>
+      </td>
+      <td style="padding:6px 8px"><span class="badge ${bCls(e)}">${r.status_linea||bLbl(e)}</span></td>
+      <td style="padding:6px 8px">${dHtml(r)}</td>
+
+      <td style="padding:6px 8px">
+        <input type="date" value="${r.fecha_propuesta ? toISO(r.fecha_propuesta) : ''}"
+          onchange="setFechaPropuesta(${ridx}, this.value)"
+          
+          style="font-size:11px;padding:3px 5px;border:0.5px solid ${r.fecha_propuesta ? 'var(--info-border)' : 'var(--border)'};border-radius:var(--r);font-family:inherit;background:var(--bg);color:var(--text);width:100%;">
+        <div style="font-size:10px;margin-top:2px">
+          ${r.estado_propuesta === 'aceptada'  ? '<span style=\"color:var(--success-text)\">✅ Aceptada</span>' :
+            r.estado_propuesta === 'rechazada' ? '<span style=\"color:var(--danger-text)\">❌ Rechazada</span>' :
+            r.fecha_propuesta                  ? '<span style=\"color:var(--warn-text)\">⏳ En revisión</span>' : ''}
+        </div>
+      </td>
+      <td style="padding:6px 8px;min-width:140px;max-width:160px">
+        <select onchange="setConfirmacion(${ridx}, this.value)" style="font-size:12px;padding:3px 6px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);${confCls};font-family:inherit;cursor:pointer;width:100%">
           <option value="" ${conf===''?'selected':''}>— Seleccionar —</option>
           <option value="Confirmado" ${conf==='Confirmado'?'selected':''}>✅ Confirmado</option>
           <option value="En proceso" ${conf==='En proceso'?'selected':''}>🔄 En proceso</option>
@@ -680,27 +1194,184 @@ function showProveedor(email, data){
           <option value="No entregará" ${conf==='No entregará'?'selected':''}>❌ No entregará</option>
         </select>
       </td>
-      <td><input type="text" value="${com}" placeholder="Agregar comentario..." onchange="setComentario(${ridx}, this.value)"
-        style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;width:180px"></td>
+      <td style="padding:6px 8px;min-width:150px;max-width:180px">
+        <input type="text" value="${com}" placeholder="Comentario..." onchange="setComentario(${ridx}, this.value)"
+        style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;width:100%">
+      </td>
     </tr>`;
   }).join('');
 
   const activas = data.filter(r => calcEstado(r) !== 'recibida');
+  window._provActivas = activas;
+  window._provData = data;
   $('pActivasBody').innerHTML = makeRows(activas, false);
   $('pActivasEmpty').style.display = activas.length ? 'none' : 'block';
   $('pTodasBody').innerHTML = makeRows(data, true);
   $('pTodasEmpty').style.display = data.length ? 'none' : 'block';
 }
+function setFechaPropuesta(idx, val){
+  if(!rows[idx]) return;
+  if(val){
+    const [y,m,d] = val.split('-');
+    rows[idx].fecha_propuesta = `${d}/${m}/${y}`;
+  } else {
+    rows[idx].fecha_propuesta = '';
+  }
+  rows[idx].estado_propuesta = ''; // resetear siempre para permitir re-propuesta
+  toast('ℹ️ Nueva fecha propuesta — presiona 💾 Guardar para enviar a Compras');
+  // Actualizar panel proponer si está visible
+  if($('psec-misresp')  && $('psec-misresp').classList.contains('active'))  renderMisResp();
+}
 function setConfirmacion(idx, val){
-  if(rows[idx]){ rows[idx].confirmacion = val; sincronizarRespuesta(idx); }
+  if(rows[idx]){ rows[idx].confirmacion = val; toast('ℹ️ Cambio guardado localmente — presiona 💾 Guardar'); }
 }
 function setComentario(idx, val){
-  if(rows[idx]){ rows[idx].comentario = val; sincronizarRespuesta(idx); }
+  if(rows[idx]){ rows[idx].comentario = val; }
 }
+function renderProv(){
+  if(!window._provActivas) return;
+  const pf = id => { const el = document.getElementById(id); return el ? el.value.toLowerCase().trim() : ''; };
+  const filtered = window._provActivas.filter(r =>
+    (!pf('pf_fecha_creacion')   || fmt(r.fecha_creacion).toLowerCase().includes(pf('pf_fecha_creacion')))
+    && (!pf('pf_numero_documento') || (r.numero_documento||'').toLowerCase().includes(pf('pf_numero_documento')))
+    && (!pf('pf_numero_articulo')  || (r.numero_articulo||'').toLowerCase().includes(pf('pf_numero_articulo')))
+    && (!pf('pf_descripcion')      || (r.descripcion||'').toLowerCase().includes(pf('pf_descripcion')))
+    && (!pf('pf_fecha_entrega')    || fmt(r.fecha_entrega).toLowerCase().includes(pf('pf_fecha_entrega')))
+    && (!pf('pf_status')           || (r.status_linea||'').toLowerCase().includes(pf('pf_status')))
+    && (!pf('pf_fecha_propuesta')  || fmt(r.fecha_propuesta||'').toLowerCase().includes(pf('pf_fecha_propuesta')))
+  );
+  $('pActivasBody').innerHTML = makeRows(filtered, false);
+  $('pActivasEmpty').style.display = filtered.length ? 'none' : 'block';
+}
+
+async function actualizarProveedor(){
+  toast('🔄 Actualizando...');
+  const email = window._currentProvEmail || '';
+  await cargarRowsDesdeSheets();
+  const match = rows.filter(r => {
+    const correos = (r.correo||'').toLowerCase().split(';').map(e=>e.trim()).filter(Boolean);
+    return correos.includes(email);
+  });
+  if(match.length){
+    window._provData = match;
+    const activas = match.filter(r => calcEstado(r) !== 'recibida');
+    window._provActivas = activas;
+    $('pT').textContent = match.length;
+    $('pA').textContent = match.filter(r => calcEstado(r) === 'atrasada').length;
+    $('pP').textContent = match.filter(r => calcEstado(r) === 'proxima').length;
+    // Re-renderizar pestaña activa
+    const activeTab = document.querySelector('#provScreen .sec.active');
+    if(activeTab){
+      if(activeTab.id === 'psec-activas') $('pActivasBody').innerHTML = makeRows(activas, false);
+      if(activeTab.id === 'psec-misresp') renderMisResp();
+    }
+    toast('✅ Datos actualizados');
+  } else {
+    toast('⚠️ No se encontraron órdenes para este correo');
+  }
+}
+
+async function guardarProveedor(){
+  // Guardar todas las respuestas pendientes (confirmación, comentario, fecha propuesta)
+  const email = window._currentProvEmail || '';
+  const misMisRows = rows.filter(r => {
+    const correos = (r.correo||'').toLowerCase().split(';').map(e=>e.trim()).filter(Boolean);
+    return correos.includes(email) && (r.confirmacion || r.comentario || r.fecha_propuesta);
+  });
+  if(!misMisRows.length){ toast('ℹ️ No hay cambios para guardar'); return; }
+  toast('💾 Guardando...');
+  let guardados = 0;
+  for(const r of misMisRows){
+    const idx = rows.indexOf(r);
+    if(idx >= 0){
+      await sincronizarRespuesta(idx);
+      guardados++;
+    }
+  }
+  toast(`✅ ${guardados} línea(s) guardada(s) en Sheets`);
+}
+
+function renderProponer(){
+  const data = window._provActivas || [];
+  const body = $('pProponerBody');
+  const empty = $('pProponerEmpty');
+  if(!data.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = data.map(r => {
+    const ridx = rows.indexOf(r);
+    const ep = r.estado_propuesta || '';
+    const estadoHtml = ep === 'aceptada'
+      ? '<span class="badge b-re" style="font-size:11px">✅ Aceptada</span>'
+      : ep === 'rechazada'
+      ? '<span class="badge b-at" style="font-size:11px">❌ Rechazada</span>'
+      : r.fecha_propuesta
+      ? '<span class="badge b-pe" style="font-size:11px">⏳ En revisión</span>'
+      : '<span style="font-size:11px;color:var(--text3)">Sin propuesta</span>';
+    return `<tr>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2)">${fmt(r.fecha_creacion)}</td>
+      <td style="padding:8px 10px"><strong>${r.numero_documento||'—'}</strong></td>
+      <td style="padding:8px 10px;font-size:12px">${r.numero_articulo||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2);white-space:normal;word-break:break-word;line-height:1.3">${r.descripcion||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${fmt(r.fecha_entrega)}</td>
+      <td style="padding:8px 10px">
+        <input type="date" value="${r.fecha_propuesta ? toISO(r.fecha_propuesta) : ''}"
+          onchange="setFechaPropuesta(${ridx}, this.value)"
+          
+          style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);font-family:inherit;background:var(--bg);color:var(--text);width:140px">
+      </td>
+      <td style="padding:8px 10px;text-align:center">${estadoHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMisResp(){
+  // Releer desde rows para tener comentario_compras actualizado
+  const currentEmail = (window._currentProvEmail || '');
+  const fresh = rows.filter(r => {
+    const correos = (r.correo||'').toLowerCase().split(';').map(e=>e.trim()).filter(Boolean);
+    return correos.includes(currentEmail);
+  });
+  if(fresh.length) window._provData = fresh;
+  const data = (window._provData || []).filter(r => r.fecha_propuesta);
+  const body = $('pMisRespBody');
+  const empty = $('pMisRespEmpty');
+  if(!data.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = data.map(r => {
+    const ep = r.estado_propuesta || '';
+    const estadoHtml = ep === 'aceptada'
+      ? `<div>
+          <span class="badge b-re" style="font-size:12px">✅ Aceptada por Compras</span>
+          <div style="font-size:11px;color:var(--success-text);margin-top:3px">Nueva fecha de entrega: ${fmt(r.fecha_propuesta)}</div>
+        </div>`
+      : ep === 'rechazada'
+      ? '<span class="badge b-at" style="font-size:12px">❌ Rechazada por Compras</span>'
+      : '<span class="badge b-pe" style="font-size:12px">⏳ Pendiente revisión</span>';
+    return `<tr>
+      <td style="padding:8px 10px"><strong>${r.numero_documento||'—'}</strong></td>
+      <td style="padding:8px 10px;font-size:12px">${r.numero_articulo||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2);white-space:normal;word-break:break-word;line-height:1.3">${r.descripcion||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;white-space:nowrap;color:var(--text2)">
+        ${r.fecha_entrega_original ? fmt(r.fecha_entrega_original) : fmt(r.fecha_entrega)}
+      </td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600;color:var(--info-text);white-space:nowrap">${fmt(r.fecha_propuesta)}</td>
+      <td style="padding:8px 10px">${estadoHtml}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2);font-style:${r.comentario_compras ? 'normal' : 'italic'}">
+        ${r.comentario_compras || '<span style=\"color:var(--text3)\">Sin comentarios</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
 function pTab(id, btn){
   document.querySelectorAll('#provScreen .sec').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('#provScreen .tab').forEach(t => t.classList.remove('active'));
   $('psec-' + id).classList.add('active'); btn.classList.add('active');
+  // proponer ya está integrado en activas
+  if(id === 'misresp'){
+    // Recargar respuestas desde Sheets para ver comentarios del admin
+    cargarRowsDesdeSheets().then(() => renderMisResp()).catch(() => renderMisResp());
+  }
 }
 
 // EMAILS (Outlook)
@@ -709,14 +1380,15 @@ function buildOutlookURL(to, subject, body){
 }
 function openEmail(idx){
   const r = rows[idx];
-  // Usar primer correo si hay varios separados por ;
-  const primerCorreo = (r.correo||'').split(';')[0].trim();
+  // Obtener TODOS los correos del proveedor separados por ;
+  const correosArr = (r.correo||'').split(';').map(e => e.trim()).filter(Boolean);
+  const todosCorreos = correosArr.join('; ');
   // Todas las líneas del mismo proveedor
   const todas = rows.filter(x => (x.cod_proveedor && x.cod_proveedor === r.cod_proveedor) || x.correo === r.correo);
   const lineasDetalle = todas.map(l => {
     return `OC: ${l.numero_documento}\nArtículo: ${l.numero_articulo} – ${l.descripcion}\nCantidad pendiente: ${fmtNum(l.cantidad_abierta)}\nFecha entrega: ${fmt(l.fecha_entrega)}`;
   }).join('\n─────────────────────────\n');
-  $('em_to').value = primerCorreo;
+  $('em_to').value = todosCorreos;
   $('em_sub').value = `Seguimiento órdenes de compra – ${r.nombre_proveedor}`;
   $('em_body').value = `Estimado equipo de ${r.nombre_proveedor},\n\nLes escribimos para hacer seguimiento a las siguientes órdenes de compra pendientes:\n\n${lineasDetalle}\n\nAgradecemos confirmar el estado actual de cada línea y notificar cualquier novedad.\n\nCordialmente,\nÁrea de Compras`;
   $('emailModal')._idx = idx;
@@ -813,7 +1485,7 @@ function renderHist(){
   </table></div>`;
 }
 function renderRespuestas(){
-  const resp = rows.filter(r => r.confirmacion || r.comentario);
+  const resp = rows.filter(r => r.confirmacion || r.comentario || r.fecha_propuesta);
   if(!resp.length){
     if($('respBody')) $('respBody').innerHTML = '<div class="empty">Aún no hay respuestas de proveedores.</div>';
     return;
@@ -821,33 +1493,326 @@ function renderRespuestas(){
   if($('respBody')) $('respBody').innerHTML = `<div class="tbl-wrap"><table>
     <thead><tr>
       <th>Proveedor</th><th>N° Documento</th><th>N° Artículo</th><th>Descripción</th>
-      <th>Fecha entrega</th><th>Confirmación</th><th>Comentario</th>
+      <th>Fecha entrega</th><th>Fecha propuesta</th><th>Estado propuesta</th><th>Confirmación</th><th>Comentario</th>
     </tr></thead>
     <tbody>${resp.map(r => `<tr>
       <td>${r.nombre_proveedor||'—'}</td>
       <td>${r.numero_documento||'—'}</td>
-      <td style="font-size:12px">${r.numero_articulo||'—'}</td>
+      <td style="font-size:11px;padding:6px 8px;word-break:break-all">${r.numero_articulo||'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${r.descripcion||'—'}</td>
       <td style="white-space:nowrap">${fmt(r.fecha_entrega)}</td>
+      <td style="white-space:nowrap;font-weight:500;color:var(--info-text)">${r.fecha_propuesta ? fmt(r.fecha_propuesta) : '—'}</td>
+      <td style="font-size:12px">${r.estado_propuesta === 'aceptada' ? '<span style="color:var(--success-text)">✅ Aceptada</span>' : r.estado_propuesta === 'rechazada' ? '<span style="color:var(--danger-text)">❌ Rechazada</span>' : r.fecha_propuesta ? '<span style="color:var(--warn-text)">⏳ Pendiente</span>' : '—'}</td>
       <td><span style="font-weight:500">${r.confirmacion||'—'}</span></td>
       <td style="font-size:12px;color:var(--text2)">${r.comentario||'—'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
 function exportRespuestas(){
-  const resp = rows.filter(r => r.confirmacion || r.comentario);
+  const resp = rows.filter(r => r.confirmacion || r.comentario || r.fecha_propuesta);
   if(!resp.length){ alert('No hay respuestas para exportar.'); return; }
   const SEP = '\t';
-  const hdr = ['Proveedor','N° Documento','N° Artículo','Descripción','Fecha entrega','Confirmación','Comentario'].join(SEP);
+  const hdr = ['Proveedor','N° Documento','N° Artículo','Descripción','Fecha entrega','Fecha propuesta','Estado propuesta','Confirmación','Comentario'].join(SEP);
   const body = resp.map(r => [
     r.nombre_proveedor||'', r.numero_documento||'', r.numero_articulo||'',
-    r.descripcion||'', r.fecha_entrega||'', r.confirmacion||'', r.comentario||''
+    r.descripcion||'', r.fecha_entrega||'', r.fecha_propuesta||'', r.estado_propuesta||'', r.confirmacion||'', r.comentario||''
   ].map(v => v.replace(/\t/g,' ')).join(SEP)).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+hdr+'\n'+body], {type:'text/tab-separated-values;charset=utf-8'}));
   a.download = 'respuestas_proveedores.txt'; a.click();
 }
+function renderUsuarios(){
+  const el = $('usuariosList');
+  if(!el) return;
+  const currentEmail = (window._currentAdminEmail || '').toLowerCase();
+  el.innerHTML = ADMIN_USERS.map((u,i) => {
+    const isMe = u.email.toLowerCase() === currentEmail;
+    const isPrincipal = i === 0;
+    return `
+    <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--info-text);flex-shrink:0">${(u.nombre||u.email)[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-size:13px">${u.nombre||'—'} ${isMe ? '<span style="font-size:10px;background:var(--info-bg);color:var(--info-text);padding:1px 6px;border-radius:10px;margin-left:4px">Yo</span>' : ''}</div>
+          <div style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${isPrincipal ? '<span style="font-size:11px;color:var(--text3)">principal</span>' : ''}
+          <button onclick="toggleEditPass(${i})" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit">🔑 Cambiar</button>
+          ${!isPrincipal ? `<button onclick="eliminarUsuario(${i})" style="background:none;border:none;cursor:pointer;color:var(--danger-text);font-size:18px;line-height:1;padding:0 4px" title="Eliminar">×</button>` : ''}
+        </div>
+      </div>
+      <div id="editpass-${i}" style="display:none;padding:10px 12px;border-top:0.5px solid var(--border);background:var(--bg2)">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="password" id="np_${i}" placeholder="Nueva contraseña (mín. 6 caracteres)"
+            style="flex:1;min-width:160px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--r);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <button onclick="guardarNuevaPass(${i})" class="btn sm primary">Guardar</button>
+          <button onclick="toggleEditPass(${i})" class="btn sm">Cancelar</button>
+        </div>
+        <p id="np_err_${i}" style="font-size:11px;color:var(--danger-text);margin-top:6px;display:none"></p>
+        <p id="np_ok_${i}" style="font-size:11px;color:var(--success-text);margin-top:6px;display:none">✅ Contraseña actualizada.</p>
+      </div>
+    </div>`;
+  }).join('');
+  // Panel "Cambiar mi contraseña" solo para usuario principal
+  const panel = $('cambiarPassPanel');
+  if(panel){
+    const esPrincipal = ADMIN_USERS.length > 0 && ADMIN_USERS[0].email.toLowerCase() === currentEmail;
+    panel.style.display = esPrincipal ? 'block' : 'none';
+  }
+}
+
+function toggleEditPass(i){
+  const el = $('editpass-' + i);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if(el.style.display === 'block') $('np_' + i).focus();
+}
+
+function guardarNuevaPass(i){
+  const input = $('np_' + i);
+  const err   = $('np_err_' + i);
+  const ok    = $('np_ok_' + i);
+  err.style.display='none'; ok.style.display='none';
+  const nueva = input.value.trim();
+  if(nueva.length < 6){ err.textContent='Mínimo 6 caracteres.'; err.style.display='block'; return; }
+  ADMIN_USERS[i].pass = nueva;
+  saveAdminUsers();
+  input.value='';
+  ok.style.display='block';
+  setTimeout(()=>{ toggleEditPass(i); ok.style.display='none'; }, 1500);
+  toast('✅ Contraseña de ' + (ADMIN_USERS[i].nombre||ADMIN_USERS[i].email) + ' actualizada');
+}
+
+function cambiarContrasena(){
+  const actual    = $('cp_actual').value;
+  const nueva     = $('cp_nueva').value;
+  const confirmar = $('cp_confirmar').value;
+  const err = $('cp_err');
+  const ok  = $('cp_ok');
+  err.style.display='none'; ok.style.display='none';
+  const currentEmail = (window._currentAdminEmail || '').toLowerCase();
+  const idx = ADMIN_USERS.findIndex(u => u.email.toLowerCase() === currentEmail);
+  if(idx < 0){ err.textContent='Usuario no encontrado.'; err.style.display='block'; return; }
+  if(ADMIN_USERS[idx].pass !== actual){ err.textContent='La contraseña actual es incorrecta.'; err.style.display='block'; return; }
+  if(nueva.length < 6){ err.textContent='La nueva contraseña debe tener mínimo 6 caracteres.'; err.style.display='block'; return; }
+  if(nueva !== confirmar){ err.textContent='Las contraseñas no coinciden.'; err.style.display='block'; return; }
+  ADMIN_USERS[idx].pass = nueva;
+  saveAdminUsers();
+  $('cp_actual').value=''; $('cp_nueva').value=''; $('cp_confirmar').value='';
+  ok.style.display='block';
+  toast('✅ Contraseña cambiada exitosamente');
+}
+
+function crearUsuario(){
+  const nombre = $('nu_nombre').value.trim();
+  const email  = $('nu_email').value.trim().toLowerCase();
+  const pass   = $('nu_pass').value;
+  const err    = $('nu_err');
+  err.style.display='none';
+  if(!nombre){ err.textContent='Ingresa el nombre.'; err.style.display='block'; return; }
+  if(!email || !email.includes('@')){ err.textContent='Ingresa un correo válido.'; err.style.display='block'; return; }
+  if(pass.length < 6){ err.textContent='La contraseña debe tener mínimo 6 caracteres.'; err.style.display='block'; return; }
+  if(ADMIN_USERS.find(u => u.email === email)){ err.textContent='Este correo ya está registrado.'; err.style.display='block'; return; }
+  ADMIN_USERS.push({email, pass, nombre});
+  saveAdminUsers();
+  $('nu_nombre').value=''; $('nu_email').value=''; $('nu_pass').value='';
+  renderUsuarios();
+  toast('✅ Usuario creado: ' + email);
+}
+
+function eliminarUsuario(i){
+  if(!confirm('¿Eliminar el usuario ' + ADMIN_USERS[i].email + '?')) return;
+  ADMIN_USERS.splice(i,1);
+  saveAdminUsers();
+  renderUsuarios();
+  toast('Usuario eliminado');
+}
+
+function generarPass(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$';
+  let p='';
+  for(let i=0;i<10;i++) p+=chars[Math.floor(Math.random()*chars.length)];
+  $('nu_pass').value=p;
+  $('nu_pass').type='text';
+  setTimeout(()=>{ $('nu_pass').type='password'; },3000);
+  toast('Contraseña generada: ' + p);
+}
+
+// ── CONTRASEÑAS PROVEEDORES ──
+function generarPassProv(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let p = '';
+  for(let i=0;i<8;i++) p += chars[Math.floor(Math.random()*chars.length)];
+  return p;
+}
+
+async function cargarPassProveedores(){
+  toast('☁ Cargando...');
+  try {
+    const resp = await fetchSheets({action:'getProveedores'});
+    window._provPassDB = resp.rows || [];
+  } catch(e){ window._provPassDB = []; }
+  renderPassProvs();
+}
+
+function renderPassProvs(){
+  // Construir lista desde rows (proveedores únicos) cruzada con _provPassDB
+  const map = {};
+  rows.forEach(r => {
+    const k = r.cod_proveedor || r.nombre_proveedor || '—';
+    if(!map[k]) map[k] = {cod: k, nombre: r.nombre_proveedor||'—', correos: r.correo||''};
+  });
+  const provs = Object.values(map);
+  const db = window._provPassDB || [];
+  const body = $('passProvsBody');
+  const empty = $('passProvsEmpty');
+  if(!provs.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = provs.map((p,i) => {
+    const dbRow = db.find(d => d.cod_proveedor === p.cod) || {};
+    const pass = dbRow.contrasena || '';
+    const correosUnicos = [...new Set(p.correos.split(';').map(e=>e.trim()).filter(Boolean))];
+    return `<tr>
+      <td style="padding:8px 12px;font-size:13px;white-space:normal;word-break:break-word"><strong>${p.nombre}</strong></td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text2);white-space:normal;word-break:break-all;line-height:1.6">${correosUnicos.join('<br>')}</td>
+      <td style="padding:8px 12px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="text" id="pp_${i}" value="${pass}" placeholder="Sin contraseña"
+            style="width:100px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);font-size:12px;font-family:monospace;background:var(--bg);color:var(--text)">
+          <button onclick="generarUnaPass(${i})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Generar">🔀</button>
+        </div>
+      </td>
+      <td style="padding:8px 12px;text-align:center">
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+          <button onclick="guardarPassProv(${i},'${p.cod}','${correosUnicos.join(';')}')" class="btn sm primary">💾 Guardar</button>
+          <button onclick="enviarCredenciales(${i},'${p.nombre}','${correosUnicos.join(';')}')" class="btn sm">✉ Enviar</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function generarUnaPass(i){
+  const input = $('pp_'+i);
+  if(input) input.value = generarPassProv();
+}
+
+async function generarTodasLasPass(){
+  if(!confirm('¿Generar contraseñas para todos los proveedores sin contraseña?')) return;
+  const map = {};
+  rows.forEach(r => {
+    const k = r.cod_proveedor || r.nombre_proveedor || '—';
+    if(!map[k]) map[k] = {cod:k, nombre:r.nombre_proveedor||'—', correos:r.correo||''};
+  });
+  const provs = Object.values(map);
+  const db = window._provPassDB || [];
+  provs.forEach((p,i) => {
+    const dbRow = db.find(d => d.cod_proveedor === p.cod);
+    if(!dbRow || !dbRow.contrasena){
+      const input = $('pp_'+i);
+      if(input && !input.value) input.value = generarPassProv();
+    }
+  });
+  toast('✅ Contraseñas generadas — guarda y envía a cada proveedor');
+}
+
+async function guardarPassProv(i, cod, correosStr){
+  const input = $('pp_'+i);
+  if(!input || !input.value){ toast('⚠️ Ingresa una contraseña primero'); return; }
+  const pass = input.value.trim();
+  toast('💾 Guardando...');
+  try {
+    const form = new FormData();
+    form.append('data', JSON.stringify({
+      action: 'saveProveedor',
+      row: { cod_proveedor: cod, correos: correosStr, contrasena: pass }
+    }));
+    await fetch(SHEETS_URL, {method:'POST', body: form});
+    if(!window._provPassDB) window._provPassDB = [];
+    const idx = window._provPassDB.findIndex(d => d.cod_proveedor === cod);
+    if(idx >= 0) window._provPassDB[idx].contrasena = pass;
+    else window._provPassDB.push({cod_proveedor: cod, correos: correosStr, contrasena: pass});
+    toast('✅ Contraseña guardada en Sheets');
+  } catch(e){ toast('⚠️ Error al guardar'); }
+}
+
+function enviarCredenciales(i, nombre, correosStr){
+  const input = $('pp_'+i);
+  if(!input || !input.value){ toast('⚠️ Primero guarda la contraseña'); return; }
+  const pass = input.value.trim();
+  const correos = correosStr.split(';').filter(Boolean);
+  correos.forEach((correo, j) => {
+    const sub = 'Credenciales de acceso – Portal de Órdenes de Compra';
+    const body = `Estimado equipo de ${nombre},\n\nLes compartimos sus credenciales de acceso al Portal de Órdenes de Compra:\n\nURL: https://david433828.github.io/seguimiento-oc\nCorreo: ${correo}\nContraseña: ${pass}\n\nCon estas credenciales podrán consultar el estado de sus órdenes de compra, proponer nuevas fechas de entrega y dejar comentarios.\n\nPor seguridad, no compartan esta contraseña.\n\nCordialmente,\nÁrea de Compras`;
+    setTimeout(() => { window.location.href = buildOutlookURL(correo, sub, body); }, j * 1200);
+  });
+  toast('✉ Correo(s) de credenciales abiertos en Outlook');
+}
+
 function closeM(id){ $(id).classList.remove('open'); }
+
+// ─── AUTO-REFRESH (polling cada 15 segundos) ───
+let _pollTimer = null;
+let _pollActivo = false;
+
+function iniciarPolling(modo){
+  detenerPolling();
+  _pollActivo = true;
+  _pollTimer = setInterval(async () => {
+    if(!_pollActivo) return;
+    try {
+      if(modo === 'admin'){
+        // Admin: recargar órdenes y respuestas silenciosamente
+        await cargarRowsDesdeSheets();
+        renderKPIs();
+        renderOCs();
+        // Si pestaña activa es respuestas o propuestas, actualizar también
+        const activeTab = document.querySelector('#adminScreen .sec.active');
+        if(activeTab){
+          if(activeTab.id === 'sec-resp')      renderRespuestas();
+          if(activeTab.id === 'sec-propuestas') renderPropuestas();
+        }
+        mostrarIndicadorSync('admin');
+      } else if(modo === 'proveedor'){
+        // Proveedor: recargar datos y re-renderizar
+        const email = window._currentProvEmail || '';
+        await cargarRowsDesdeSheets();
+        const match = rows.filter(r => {
+          const correos = (r.correo||'').toLowerCase().split(';').map(e=>e.trim()).filter(Boolean);
+          return correos.includes(email);
+        });
+        if(match.length){
+          window._provData    = match;
+          window._provActivas = match.filter(r => calcEstado(r) !== 'recibida');
+          $('pT').textContent = match.length;
+          $('pA').textContent = match.filter(r => calcEstado(r) === 'atrasada').length;
+          $('pP').textContent = match.filter(r => calcEstado(r) === 'proxima').length;
+          const activeTab = document.querySelector('#provScreen .sec.active');
+          if(activeTab){
+            if(activeTab.id === 'psec-activas') $('pActivasBody').innerHTML = makeRows(window._provActivas, false);
+            if(activeTab.id === 'psec-misresp') renderMisResp();
+          }
+          mostrarIndicadorSync('prov');
+        }
+      }
+    } catch(e){ /* silencioso — no interrumpir al usuario */ }
+  }, 15000); // 15 segundos
+}
+
+function detenerPolling(){
+  _pollActivo = false;
+  if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+function mostrarIndicadorSync(tipo){
+  const id = tipo === 'admin' ? 'syncIndicatorAdmin' : 'syncIndicatorProv';
+  const el = $(id);
+  if(!el) return;
+  el.style.opacity = '1';
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+}
 
 // ─── GOOGLE SHEETS SYNC ───
 function toast(msg, ms=3200){
@@ -894,10 +1859,15 @@ async function cargarRowsDesdeSheets(){
         cantidad:         String(r.cantidad||''),
         cantidad_abierta: String(r.cantidad_abierta||''),
         fecha_entrega:    String(r.fecha_entrega||''),
+        numero_linea:     String(r.numero_linea||''),
         status_linea:     String(r.status_linea||''),
         correo:           String(r.correo||''),
         confirmacion:     String(r.confirmacion||''),
         comentario:       String(r.comentario||''),
+        fecha_propuesta:        String(r.fecha_propuesta||''),
+        estado_propuesta:       String(r.estado_propuesta||''),
+        fecha_entrega_original: String(r.fecha_entrega_original||''),
+        comentario_compras:     String(r.comentario_compras||''),
       }));
       // Cruzar respuestas
       try {
@@ -906,9 +1876,17 @@ async function cargarRowsDesdeSheets(){
           resp.rows.forEach(re => {
             const match = rows.find(r =>
               r.numero_documento === String(re.numero_documento) &&
-              r.numero_articulo  === String(re.numero_articulo)
+              r.numero_articulo  === String(re.numero_articulo) &&
+              ((r.numero_linea||'') === (String(re.numero_linea)||''))
             );
-            if(match){ match.confirmacion = re.confirmacion||''; match.comentario = re.comentario||''; }
+            if(match){
+              match.confirmacion    = String(re.confirmacion    || '');
+              match.comentario      = String(re.comentario      || '');
+              match.fecha_propuesta        = String(re.fecha_propuesta        || '');
+              match.estado_propuesta       = String(re.estado_propuesta       || '');
+              match.fecha_entrega_original = String(re.fecha_entrega_original || '');
+              match.comentario_compras     = String(re.comentario_compras     || '');
+            }
           });
         }
       } catch(e){}
@@ -947,6 +1925,94 @@ async function cargarDesdeSheets(){
   btn.textContent='☁ Cargar desde Sheets'; btn.disabled=false;
 }
 
+function renderPropuestas(){
+  const conProp = rows.filter(r => r.fecha_propuesta);
+  $('propCount').textContent = conProp.length;
+  const empty = $('propuestasEmpty');
+  const body  = $('propuestasBody');
+  if(!conProp.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = conProp.map((r,i) => {
+    const idx = rows.indexOf(r);
+    const ep = r.estado_propuesta;
+    const estadoHtml = ep === 'aceptada'
+      ? '<span class="badge b-re">✅ Aceptada</span>'
+      : ep === 'rechazada'
+      ? '<span class="badge b-at">❌ Rechazada</span>'
+      : '<span class="badge b-pe">⏳ Pendiente</span>';
+    const accionHtml = ep === 'aceptada'
+      ? '<span style="font-size:12px;color:var(--success-text)">✅ Ya aceptada</span>'
+      : ep === 'rechazada'
+      ? `<button onclick="aceptarPropuesta(${idx})" style="font-size:12px;padding:3px 8px;border:0.5px solid var(--success-text);border-radius:4px;background:var(--success-bg);color:var(--success-text);cursor:pointer">✅ Aceptar</button>`
+      : `<div style="display:flex;gap:6px">
+          <button onclick="aceptarPropuesta(${idx})" style="font-size:12px;padding:3px 8px;border:0.5px solid var(--success-text);border-radius:4px;background:var(--success-bg);color:var(--success-text);cursor:pointer">✅ Aceptar</button>
+          <button onclick="rechazarPropuesta(${idx})" style="font-size:12px;padding:3px 8px;border:0.5px solid var(--danger-text);border-radius:4px;background:var(--danger-bg);color:var(--danger-text);cursor:pointer">❌ Rechazar</button>
+        </div>`;
+    return `<tr style="${i%2===0?'':'background:var(--bg2)'}">
+      <td style="padding:8px 10px;font-size:13px;white-space:normal;word-break:break-word"><strong>${r.nombre_proveedor||'—'}</strong></td>
+      <td style="padding:8px 10px"><strong>${r.numero_documento||'—'}</strong></td>
+      <td style="padding:8px 10px;font-size:12px">${r.numero_articulo||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2);white-space:normal;word-break:break-word;line-height:1.3">${r.descripcion||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text2);white-space:nowrap">
+        ${r.fecha_entrega_original
+          ? `<div>${fmt(r.fecha_entrega_original)}</div><div style="font-size:10px;color:var(--text3)">original</div>`
+          : fmt(r.fecha_entrega)}
+      </td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600;color:var(--info-text);white-space:nowrap">${fmt(r.fecha_propuesta)}</td>
+      <td style="padding:8px 10px">${estadoHtml}</td>
+      <td style="padding:8px 10px">${accionHtml}</td>
+      <td style="padding:8px 10px">
+        <input type="text" value="${r.comentario_compras||''}" placeholder="Comentario para proveedor..."
+          onchange="setComentarioCompras(${idx}, this.value)"
+          style="font-size:12px;padding:4px 8px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;width:100%">
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function exportPropuestas(){
+  const conProp = rows.filter(r => r.fecha_propuesta);
+  if(!conProp.length){ alert('No hay fechas propuestas para exportar.'); return; }
+  const SEP = '\t';
+  const hdr = ['Proveedor','N° Documento','N° Artículo','Descripción','Fecha entrega original','Fecha propuesta','Estado propuesta'].join(SEP);
+  const body = conProp.map(r => [
+    r.nombre_proveedor||'', r.numero_documento||'', r.numero_articulo||'',
+    r.descripcion||'', r.fecha_entrega_original||r.fecha_entrega||'', r.fecha_propuesta||'', r.estado_propuesta||'Pendiente'
+  ].map(v=>v.replace(/\t/g,' ')).join(SEP)).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+hdr+'\n'+body],{type:'text/tab-separated-values;charset=utf-8'}));
+  a.download = 'fechas_propuestas.txt'; a.click();
+}
+
+function setComentarioCompras(idx, val){
+  if(!rows[idx]) return;
+  rows[idx].comentario_compras = val;
+  sincronizarRespuesta(idx);
+}
+
+async function aceptarPropuesta(idx){
+  if(!rows[idx] || !rows[idx].fecha_propuesta) return;
+  rows[idx].estado_propuesta = 'aceptada';
+  // Guardar fecha original solo si no se ha guardado antes
+  if(!rows[idx].fecha_entrega_original){
+    rows[idx].fecha_entrega_original = rows[idx].fecha_entrega;
+  }
+  rows[idx].fecha_entrega = rows[idx].fecha_propuesta;
+  renderOCs(); renderKPIs(); renderPropuestas();
+  toast('✅ Guardando...');
+  await sincronizarRespuesta(idx);
+  await guardarEnSheets();
+  toast('✅ Fecha aceptada y actualizada en base de datos');
+}
+async function rechazarPropuesta(idx){
+  if(!rows[idx]) return;
+  rows[idx].estado_propuesta = 'rechazada';
+  renderOCs(); renderPropuestas();
+  toast('❌ Guardando...');
+  await sincronizarRespuesta(idx);
+  await guardarEnSheets();
+  toast('❌ Fecha rechazada y sincronizada');
+}
 async function sincronizarRespuesta(idx){
   const r = rows[idx];
   if(!r) return;
@@ -958,12 +2024,18 @@ async function sincronizarRespuesta(idx){
       row: {
         numero_documento: r.numero_documento,
         numero_articulo:  r.numero_articulo,
+        numero_linea:     r.numero_linea || '',
         nombre_proveedor: r.nombre_proveedor,
         descripcion:      r.descripcion,
         fecha_entrega:    r.fecha_entrega,
-        confirmacion:     r.confirmacion || '',
-        comentario:       r.comentario   || '',
+        confirmacion:     r.confirmacion    || '',
+        comentario:       r.comentario      || '',
+        fecha_propuesta:        r.fecha_propuesta        || '',
+        estado_propuesta:       r.estado_propuesta       || '',
+        fecha_entrega_original: r.fecha_entrega_original || '',
+        comentario_compras:     r.comentario_compras     || '',
         fecha_respuesta:  new Date().toLocaleString('es-CO'),
+        actualizar_fecha_entrega: r.estado_propuesta === 'aceptada' ? 'si' : ''
       }
     }));
     const res = await fetch(SHEETS_URL, {method:'POST', body: form});
@@ -1039,6 +2111,7 @@ function mapRow(r){
     cantidad:         g('Cantidad'),
     cantidad_abierta: g('Cantidad abierta restante','Cantidadabiertarestante','cantidadabierta','abierta','restante'),
     fecha_entrega:    g('Fecha de entrega de la línea','Fechadeentregadelalinea','fechaentregadelalinea','fechaentrega','entrega'),
+    numero_linea:     g('Número de línea','Numerodelinea','nrolinea','nolinea','linea'),
     status_linea:     g('Status de la línea','Statusdelalinea','statuslinea','status','estado'),
     correo,
   };
@@ -1057,7 +2130,7 @@ function loadRows(data){
 
 function exportCSV(){
   if(!rows.length){ alert('No hay datos para exportar.'); return; }
-  const cols = ['fecha_creacion','cod_proveedor','nombre_proveedor','numero_documento','numero_articulo','descripcion','cantidad','cantidad_abierta','fecha_entrega','status_linea','correo'];
+  const cols = ['fecha_creacion','cod_proveedor','nombre_proveedor','numero_documento','numero_articulo','numero_linea','descripcion','cantidad','cantidad_abierta','fecha_entrega','status_linea','correo'];
   const hdrs = ['Fecha creación','Cód. proveedor','Proveedor','N° Documento','N° Artículo','Descripción','Cantidad','Cant. abierta','Fecha entrega','Status línea','Correo'];
   // Separador TAB: Excel lo abre directamente como columnas sin necesidad de convertir
   const SEP = '\t';
